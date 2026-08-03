@@ -87,3 +87,10 @@ target_include_directories(null_space_baxter PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 target_link_libraries(null_space_baxter ${PROJECT_NAME})
+
+add_executable(projectaria src/projectaria.cpp)
+target_include_directories(projectaria PUBLIC
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+target_link_libraries(projectaria ${PROJECT_NAME})
