@@ -1,0 +1,14 @@
+[project]
+name = "scripts"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "opencv-python>=5.0.0.93",
+    "pandas>=3.0.3",
+    "plotly>=6.9.0",
+    "projectaria-tools>=2.1.4",
+    "pybullet>=3.2.7",
+    "scipy>=1.18.0",
+]
