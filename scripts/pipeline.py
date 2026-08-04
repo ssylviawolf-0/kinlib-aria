@@ -19,18 +19,24 @@ from pathlib import Path
 import subprocess
 import math
 import sys
+import cv2
 import os
 
 
 # python <this_file> <path to vrs file>
 vrs_file_path = sys.argv[1]
+
 if not Path(vrs_file_path).suffix or Path(vrs_file_path).suffix != ".vrs":
     raise RuntimeError("Incorrect extension")
 
 print(f"Current file path: {vrs_file_path}")
 
+APRIL_TAG_OBJ_ID = int(sys.argv[2])
+APRIL_TAG_OBJ_STATIC = int(sys.argv[3])
+
+
 OUTPUT_FPS = 30
-OUTPUT_FOLDER = f"output_{vrs_file_path.partition('.')[0]}"
+OUTPUT_FOLDER = os.path.join("outputs", f"output_{vrs_file_path.partition('.')[0]}")
 
 VIDEO_PATHS = {}
 
@@ -299,12 +305,15 @@ def get_april_tag_data():
     rgb_label = "camera-rgb"
     rgb_stream_id = vrs_data_provider.get_stream_id_from_label(rgb_label)
 
-    trajectory_data = []
-    trajectory_data_formatted = []
+    # trajectory_data = []
+    # trajectory_data_formatted = []
+    trajectory_data_by_id = {}
+    trajectory_data_formatted_by_id = {}
 
     # protection from outlieing values, if the distance between previous and current point is large, we don't add it to the trajectory
 
-    tx_old, ty_old, tz_old = None, None, None
+    # tx_old, ty_old, tz_old = None, None, None
+    old_positions_by_id = {}
 
     MAX_ALLOWED_JUMP = 1.0
 
@@ -334,17 +343,29 @@ def get_april_tag_data():
             tx_old, ty_old, tz_old = None, None, None
             continue
 
+        current_frame_tags = set()
+
         for r in results:
+            tag_id = r.tag_id
+            current_frame_tags.add(tag_id)
             tx, ty, tz = r.pose_t.flatten()
 
-            if tx_old is not None:
-                # mean square, could extrapolate this to a function that could compute different
+            if tag_id not in trajectory_data_by_id:
+                trajectory_data_by_id[tag_id] = []
+                trajectory_data_formatted_by_id[tag_id] = []
+
+            old_pos = old_positions_by_id.get(tag_id)
+
+            if old_pos is not None:
+                tx_old, ty_old, tz_old = old_pos
                 distance = math.sqrt(
                     (tx - tx_old) ** 2 + (ty - ty_old) ** 2 + (tz - tz_old) ** 2
                 )
 
                 if distance > MAX_ALLOWED_JUMP:
-                    print(f"Skipping timestamp {current_timestamp_ns}, jump found")
+                    print(
+                        f"Skipping timestamp {current_timestamp_ns} for Tag {tag_id}, jump found"
+                    )
                     continue
 
             # could calculate roll, pitch and yaw but I don't think we need them
@@ -354,7 +375,7 @@ def get_april_tag_data():
             transformation_matrix[:3, 3] = r.pose_t.flatten()
             matrix_str = ",".join(map(str, transformation_matrix.flatten()))
 
-            trajectory_data.append(
+            trajectory_data_by_id[tag_id].append(
                 {
                     "current_timestamp_ns": current_timestamp_ns,
                     "tag_id": r.tag_id,
@@ -370,7 +391,7 @@ def get_april_tag_data():
             transformation_matrix[:3, 3] = r.pose_t.flatten()
 
             for row in transformation_matrix:
-                trajectory_data_formatted.append(
+                trajectory_data_formatted_by_id[tag_id].append(
                     {
                         "col1": round(row[0], 2),
                         "col2": round(row[1], 2),
@@ -378,32 +399,64 @@ def get_april_tag_data():
                         "col4": round(row[3], 2),
                     }
                 )
+            old_positions_by_id[tag_id] = (tx, ty, tz)
 
-            tx_old, ty_old, tz_old = tx, ty, tz
+        tags_to_remove = [t for t in old_positions_by_id if t not in current_frame_tags]
+        for t in tags_to_remove:
+            del old_positions_by_id[t]
 
-    df = pd.DataFrame(trajectory_data)
-    df_formatted = pd.DataFrame(trajectory_data_formatted)
+    # df = pd.DataFrame(trajectory_data)
+    # df_formatted = pd.DataFrame(trajectory_data_formatted)
 
     print("Saving april tag CSV data")
-    csv_output_path = os.path.join(OUTPUT_FOLDER, "object_data_device_to_pbject_data")
+    csv_output_path = os.path.join(OUTPUT_FOLDER, "object_data_device_to_object_data")
     os.makedirs(csv_output_path, exist_ok=True)
 
-    csv_output_file = os.path.join(
-        csv_output_path, f"{vrs_file_path.partition('.')[0]}_april_tag.csv"
-    )
+    saved_files = {}
 
-    csv_formatted_output_file = os.path.join(
-        csv_output_path, f"{vrs_file_path.partition('.')[0]}_formatted_april_tag.csv"
-    )
+    for tag_id in trajectory_data_by_id.keys():
+        df = pd.DataFrame(trajectory_data_by_id[tag_id])
+        df_formatted = pd.DataFrame(trajectory_data_formatted_by_id[tag_id])
 
-    df_formatted.to_csv(csv_formatted_output_file, index=False)
-    df.to_csv(csv_output_file, index=False)
+        csv_output_file = os.path.join(
+            csv_output_path,
+            f"{vrs_file_path.partition('.')[0]}_april_tag_id_{tag_id}.csv",
+        )
+
+        csv_formatted_output_file = os.path.join(
+            csv_output_path,
+            f"{vrs_file_path.partition('.')[0]}_formatted_april_tag_id_{tag_id}.csv",
+        )
+
+        df_formatted.to_csv(csv_formatted_output_file, index=False)
+        df.to_csv(csv_output_file, index=False)
+
+        saved_files[tag_id] = csv_output_file
+
+        print(f"Current tag id: {tag_id}")
+        if tag_id == APRIL_TAG_OBJ_ID:
+            VIDEO_PATHS.update({"APRIL_TAG_OBJ": saved_files[tag_id]})
+            print("april tag obj got set")
+
+        if tag_id == APRIL_TAG_OBJ_STATIC:
+            VIDEO_PATHS.update({"APRIL_TAG_STATIC": saved_files[tag_id]})
+            print("april tag static got set")
 
     # below shi needs to be worked on will do that later
-    VIDEO_PATHS.update({"APRIL_TAG_ALL": csv_output_file})
-    VIDEO_PATHS.update({"APRIL_TAG_FORMATTED": csv_output_file})
+
+    # VIDEO_PATHS.update({"APRIL_TAG_FORMATTED": csv_output_file})
+
+    try:
+        if not VIDEO_PATHS.get("APRIL_TAG_OBJ") or not VIDEO_PATHS.get(
+            "APRIL_TAG_STATIC"
+        ):
+            raise RuntimeError("No tags identified")
+    except RuntimeError as e:
+        print(f"HALT: {e}")
+
     global OBJECT_TO_DEVICE_COORDS
-    OBJECT_TO_DEVICE_COORDS = csv_output_file
+    OBJECT_TO_DEVICE_COORDS = saved_files
+    print(f"Saved file: {saved_files}")
 
 
 # for open loop and hand tracking
@@ -429,10 +482,10 @@ def get_reference_frames():
         open_loop_csv_folder_path, "open_loop_trajectory.csv"
     )
 
-    april_tag_file_path = VIDEO_PATHS["APRIL_TAG_ALL"]
+    # april_tag_file_path = VIDEO_PATHS["APRIL_TAG_ALL"]
 
-    april_tag_data = pd.read_csv(april_tag_file_path)
-    open_loop_data = pd.read_csv(open_loop_cvs_file_path)
+    # april_tag_data = pd.read_csv(april_tag_file_path)
+    # open_loop_data = pd.read_csv(open_loop_cvs_file_path)
 
     # get frame rate of hand tracking
 
@@ -456,13 +509,17 @@ def interpolate_poses(source_times, source_translations, source_quats, target_ti
     return synced_translations, synced_rotations.as_quat()
 
 
-def interpolate_transform():
+def interpolate_transform(current_tag):
+    # ts is so ahh, we'll have to run it like this every time:
+    # interpolate_transform("APRIL_TAG_OBJ")
+    # interpolate_transform("APRIL_TAG_STATIC")
+    # very bad practise
     # run interpolation to get all of the data at the same frequency so we can multiply the CSVs
     # once we do linear interpolation and see everything working we could try different interpolations to see how that might improve accuracy
     # NOTE: we cannot run simple interpolation on the rotation matrix within the transformation matrix, Sam should know more about this since his background is in math
     # METHODOLOGY: linear interp for translations, spherical interpolation for rotation/quaternions
 
-    april_tag_file = VIDEO_PATHS["APRIL_TAG_ALL"]
+    april_tag_file = VIDEO_PATHS[current_tag]
     df_tags = pd.read_csv(april_tag_file)
     target_times = df_tags["current_timestamp_ns"].values
 
@@ -577,7 +634,7 @@ def interpolate_transform():
         ],
     )
 
-    output_dir = os.path.join(OUTPUT_FOLDER, "synchronized_trajectories")
+    output_dir = os.path.join(OUTPUT_FOLDER, "synchronized_trajectories", current_tag)
     os.makedirs(output_dir, exist_ok=True)
 
     slam_out = os.path.join(output_dir, "synced_slam_data.csv")
@@ -593,9 +650,9 @@ def interpolate_transform():
 
     VIDEO_PATHS.update(
         {
-            "SYNCED_SLAM": slam_out,
-            "SYNCED_HANDS_RIGHT": hands_out,
-            "SYNCED_TAGS": tags_out,
+            f"SYNCED_SLAM_{current_tag}": slam_out,  # will be either APRIL_TAG_OBJ or APRIL_TAG_STATIC
+            f"SYNCED_HANDS_RIGHT_{current_tag}": hands_out,
+            f"SYNCED_TAGS_{current_tag}": tags_out,
         }
     )
 
@@ -619,17 +676,19 @@ def get_pose_from_matrix(mat):
     return t[0], t[1], t[2], q[0], q[1], q[2], q[3]
 
 
-def compute_reference_frame():
+def compute_reference_frame(current_tag):
     """
+    current tag will be either APRIL_TAG_OBJ or APRIL_TAG_STATIC
     here we calculate:
     T_hand_tracking = T_device_world (open slam) * T_mps_hand_tracking
     T_world_object = T_device_world (open slam) * T_device_camera (calibration) * T_camera_object (the data from the april tag)
     """
-    df_slam = pd.read_csv(VIDEO_PATHS["SYNCED_SLAM"])
-    df_hands = pd.read_csv(VIDEO_PATHS["SYNCED_HANDS_RIGHT"])
-    df_tags = pd.read_csv(VIDEO_PATHS["SYNCED_TAGS"])
 
-    output_dir = os.path.join(OUTPUT_FOLDER, "final_reference")
+    df_slam = pd.read_csv(VIDEO_PATHS[f"SYNCED_SLAM_{current_tag}"])
+    df_hands = pd.read_csv(VIDEO_PATHS[f"SYNCED_HANDS_RIGHT_{current_tag}"])
+    df_tags = pd.read_csv(VIDEO_PATHS[f"SYNCED_TAGS_{current_tag}"])
+
+    output_dir = os.path.join(OUTPUT_FOLDER, "final_reference", current_tag)
     os.makedirs(output_dir, exist_ok=True)
 
     world_slam_data = []
@@ -770,14 +829,16 @@ def plot_with_mujoco():
     pass
 
 
-def plot_with_plotly():
+def plot_with_plotly(current_tag):
     # plot them in html files
-    output_dir = os.path.join(OUTPUT_FOLDER, "final_reference")
+    output_dir = os.path.join(OUTPUT_FOLDER, "final_reference", current_tag)
 
     slam_file = os.path.join(output_dir, "world_slam.csv")
     hand_file = os.path.join(output_dir, "world_hand.csv")
     object_file = os.path.join(output_dir, "world_object.csv")
-    object_formatted_file = os.path.join(output_dir, "world_object_formatted.csv")
+    object_formatted_file = os.path.join(
+        output_dir, "world_object_formatted.csv"
+    )  # don't need this
 
     if not (
         os.path.exists(slam_file)
@@ -884,8 +945,8 @@ def ideate_pose(i, way, pose):
     return cut_noise_ind
 
 
-def remove_noise():
-    output_dir = os.path.join(OUTPUT_FOLDER, "final_reference")
+def remove_noise(current_tag):
+    output_dir = os.path.join(OUTPUT_FOLDER, "final_reference", current_tag)
     object_formatted_file = os.path.join(output_dir, "world_object_formatted.csv")
     global april_tag_noise
     april_tag_noise = pd.read_csv(object_formatted_file)
@@ -931,7 +992,11 @@ create_video_with_hands()
 get_mps_data()
 get_april_tag_data()
 get_reference_frames()
-interpolate_transform()
-compute_reference_frame()
-plot_with_plotly()
-remove_noise()
+interpolate_transform("APRIL_TAG_OBJ")
+interpolate_transform("APRIL_TAG_STATIC")
+compute_reference_frame("APRIL_TAG_OBJ")
+compute_reference_frame("APRIL_TAG_STATIC")
+plot_with_plotly("APRIL_TAG_OBJ")
+plot_with_plotly("APRIL_TAG_STATIC")
+remove_noise("APRIL_TAG_OBJ")
+remove_noise("APRIL_TAG_STATIC")

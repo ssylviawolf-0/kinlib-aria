@@ -254,8 +254,8 @@ void makeSimulationGripperCSV(const std::string &newfilename,
   std::cout << "Motion plan saved to " << newfilename << std::endl;
 }
 
-int main() {
-  //   define panda robot
+int main(int argc, char *argv[]) {
+  // define panda robot
   // lets just use panda for now idc
   Eigen::IOFormat CleanFmt(Eigen::FullPrecision, 0, "\t", "\n");
 
@@ -269,6 +269,8 @@ int main() {
   // "Demonstrations/aria_project/dummy_gripper.csv",
   // std::string(KINLIB_RESOURCES_DIR) +
   // "Demonstrations/aria_project/world_object_formatted.csv");
+
+  // should get the paths from argv
   makeDummyGripperCSV(
       std::string(KINLIB_RESOURCES_DIR) +
           "Demonstrations/aria_project/dummy_gripper.csv",

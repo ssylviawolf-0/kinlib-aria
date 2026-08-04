@@ -9,6 +9,7 @@ dependencies = [
     "pandas>=3.0.3",
     "plotly>=6.9.0",
     "projectaria-tools>=2.1.4",
+    "pupil-apriltags>=1.0.4.post11",
     "pybullet>=3.2.7",
     "scipy>=1.18.0",
 ]
