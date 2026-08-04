@@ -271,11 +271,15 @@ int main(int argc, char *argv[]) {
   // "Demonstrations/aria_project/world_object_formatted.csv");
 
   // should get the paths from argv
-  makeDummyGripperCSV(
-      std::string(KINLIB_RESOURCES_DIR) +
-          "Demonstrations/aria_project/dummy_gripper.csv",
-      std::string(KINLIB_RESOURCES_DIR) +
-          "Demonstrations/aria_project/world_object_formatted_move_cam.csv");
+
+  std::string inputPath = argv[1]
+
+      makeDummyGripperCSV(std::string(KINLIB_RESOURCES_DIR) +
+                              "Demonstrations/aria_project/dummy_gripper.csv",
+                          // std::string(KINLIB_RESOURCES_DIR) +
+                          //     "Demonstrations/aria_project/"
+                          //     "world_object_formatted_move_cam.csv");
+                          inputPath);
 
   // JUST RUN THIS ONCE
 

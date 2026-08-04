@@ -6,3 +6,6 @@ build/*
 
 # MacOS files
 .DS_Store
+external/
+CMakeFiles
+outputs/

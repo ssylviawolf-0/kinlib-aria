@@ -17,18 +17,29 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}"
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 
-find_package(Eigen3 REQUIRED)
-
-if(NOT EIGEN3_INCLUDE_DIRS)
-  set(EIGEN3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
-endif()
-
-#find_package(Boost REQUIRED system filesystem)
+# find_package(Eigen3 REQUIRED)
+#
+# if(NOT EIGEN3_INCLUDE_DIRS)
+#   set(EIGEN3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
+# endif()
+#
+# #find_package(Boost REQUIRED system filesystem)
+#
+# include_directories(
+#   include
+#   ${EIGEN3_INCLUDE_DIRS}
+# )
 
 include_directories(
   include
-  ${EIGEN3_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/eigen
 )
+
+# ./bin/null_space_baxter
+# mkdir build
+# cd build
+# cmake ..
+# make
 
 add_library(${PROJECT_NAME}
   src/DualQuat.cpp
@@ -71,6 +82,12 @@ install(FILES ${PROJECT_BINARY_DIR}/include/${PROJECT_NAME}/${PROJECT_NAME}_reso
 # 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 # target_link_libraries(kinlib_example ${PROJECT_NAME})
 
+add_executable(kinlib_projectaria src/projectaria.cpp)
+target_include_directories(kinlib_projectaria PUBLIC
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+target_link_libraries(kinlib_projectaria ${PROJECT_NAME})
 
 
 add_executable(null_space_softlimit src/null_space_softlimit.cpp)
@@ -88,9 +105,3 @@ target_include_directories(null_space_baxter PUBLIC
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 target_link_libraries(null_space_baxter ${PROJECT_NAME})
 
-add_executable(projectaria src/projectaria.cpp)
-target_include_directories(projectaria PUBLIC
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
-	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-target_link_libraries(projectaria ${PROJECT_NAME})

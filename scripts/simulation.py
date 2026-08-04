@@ -4,6 +4,7 @@ import math
 import time
 import pdb
 import numpy as np
+import sys
 import os
 
 
@@ -13,7 +14,7 @@ def load_poses_csv(path, delimiter=",", skip_header=0, dtype=float):
     return M.reshape(k, 4, 4)
 
 
-def main():
+def main(project_aria_file, simulation_gripper_file):
     p.connect(p.GUI)
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
     p.setGravity(0, 0, -9.81)
@@ -34,8 +35,9 @@ def main():
 
     # pdb.set_trace()
     # replace it with the joint configurations and gripper conditions
-    arm_trajectory = np.loadtxt("project_aria.csv", delimiter=",")
-    gripper_condition = np.loadtxt("simulation_gripper.csv", delimiter=",")
+
+    arm_trajectory = np.loadtxt(project_aria_file, delimiter=",")
+    gripper_condition = np.loadtxt(simulation_gripper_file, delimiter=",")
 
     gripper_open_position = [0.08, 0.08]  # both fingers open
     gripper_closed_position = [0.01, 0.01]
@@ -85,4 +87,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1], sys.argv[2])
