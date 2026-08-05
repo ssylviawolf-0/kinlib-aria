@@ -908,7 +908,7 @@ def plot_with_plotly(current_tag):
 
     fig.show()
 
-    html_out = os.path.join(OUTPUT_FOLDER, "trajectory_plot.html")
+    html_out = os.path.join(OUTPUT_FOLDER, f"trajectory_plot_{current_tag}.html")
     fig.write_html(html_out)
     print(f"Interactive 3D plot saved to {html_out}")
 

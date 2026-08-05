@@ -19,6 +19,11 @@ template <typename M> M loadCSV(const std::string &path) {
   std::string line;
   std::vector<double> values;
   uint rows = 0;
+
+  if (!indata.is_open()) {
+    std::cerr << "could not open file path " << path << std::endl;
+    exit(1);
+  }
   // if (std::getline(indata, line)) {
 
   // }
@@ -254,8 +259,8 @@ void makeSimulationGripperCSV(const std::string &newfilename,
   std::cout << "Motion plan saved to " << newfilename << std::endl;
 }
 
-int main(int argc, char *argv[]) {
-  // define panda robot
+int main() {
+  //   define panda robot
   // lets just use panda for now idc
   Eigen::IOFormat CleanFmt(Eigen::FullPrecision, 0, "\t", "\n");
 
@@ -269,17 +274,11 @@ int main(int argc, char *argv[]) {
   // "Demonstrations/aria_project/dummy_gripper.csv",
   // std::string(KINLIB_RESOURCES_DIR) +
   // "Demonstrations/aria_project/world_object_formatted.csv");
-
-  // should get the paths from argv
-
-  std::string inputPath = argv[1]
-
-      makeDummyGripperCSV(std::string(KINLIB_RESOURCES_DIR) +
-                              "Demonstrations/aria_project/dummy_gripper.csv",
-                          // std::string(KINLIB_RESOURCES_DIR) +
-                          //     "Demonstrations/aria_project/"
-                          //     "world_object_formatted_move_cam.csv");
-                          inputPath);
+  makeDummyGripperCSV(
+      std::string(KINLIB_RESOURCES_DIR) +
+          "Demonstrations/aria_project/dummy_gripper.csv",
+      std::string(KINLIB_RESOURCES_DIR) +
+          "Demonstrations/aria_project/world_object_formatted.csv");
 
   // JUST RUN THIS ONCE
 
@@ -356,7 +355,7 @@ int main(int argc, char *argv[]) {
   // "Demonstrations/aria_project/world_object_formatted.csv");
   Eigen::MatrixXd recorded_demo = loadCSV<Eigen::MatrixXd>(
       std::string(KINLIB_RESOURCES_DIR) +
-      "Demonstrations/aria_project/world_object_formatted_move_cam.csv");
+      "Demonstrations/aria_project/world_object_formatted.csv");
   // std::cout << "demo" << std::endl;
   // COMMENTED OUT IS THE ONE THAT WORKS
   //   Eigen::MatrixXd object_poses =
@@ -364,7 +363,7 @@ int main(int argc, char *argv[]) {
   //   "Demonstrations/aria_project/object_poses.csv");
   Eigen::MatrixXd object_poses = loadCSV<Eigen::MatrixXd>(
       std::string(KINLIB_RESOURCES_DIR) +
-      "Demonstrations/aria_project/obj_poses_move.csv");
+      "Demonstrations/aria_project/object_poses_pipeline.csv");
 
   std::vector<Eigen::Matrix4d> recorded_ee_traj;
   std::vector<Eigen::Matrix4d> obj_poses;
@@ -419,6 +418,7 @@ int main(int argc, char *argv[]) {
       std::cout << demo.guiding_poses[i][j] << '\n';
     }
   }
+
   std::cout << "check" << std::endl;
 
   kinlib::TaskInstance new_task_instance;

@@ -30,17 +30,24 @@ cd ..
 uv run scripts/pipeline.py "$VRS_FILE" 0 1
 
 echo "Moving CVVs into the right directories for the CPP"
-DESTINATION="files/Demonstrations/project_aria/$PREFIX"
+
+DESTINATION="$(pwd)/files/Demonstrations/aria_project"
 mkdir -p "$DESTINATION"
 
+cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_STATIC/world_hand_formatted.csv" "$DESTINATION" 
+cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_STATIC/world_object_formatted.csv" "$DESTINATION"
 
-cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/world_hand_formatted.csv" "$DESTINATION" 
-cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/world_object_formatted.csv" "$DESTINATION"
+
+cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_STATIC/object_poses_pipeline.csv" "$DESTINATION"
 
 cmake .
 make
 
 echo "Running the object"
-./bin/kinlib_projectaria  ${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/world_object_formatted.csv
+./bin/kinlib_projectaria \
+    "${DESTINATION}/world_object_formatted.csv" \
+    "${DESTINATION}/object_poses_pipeline.csv"
 
 # still have to run the simulation
+
+
