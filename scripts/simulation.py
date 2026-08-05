@@ -14,7 +14,11 @@ def load_poses_csv(path, delimiter=",", skip_header=0, dtype=float):
     return M.reshape(k, 4, 4)
 
 
-def main(project_aria_file, simulation_gripper_file):
+def main(arg1, arg2):
+    # project_aria_file = "../project_aria.csv"
+    # simulation_gripper_file = "../simulation_gripper.csv"
+    project_aria_file = arg1
+    simulation_gripper_file = arg2
     p.connect(p.GUI)
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
     p.setGravity(0, 0, -9.81)
