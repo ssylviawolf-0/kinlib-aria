@@ -1,0 +1,7 @@
+pybullet
+pandas
+scipy
+projectaria_tools
+plotly
+pupil-apriltags
+opencv-python
