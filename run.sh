@@ -28,15 +28,16 @@ fi
 echo "Running pipeline.py on vrs file"
 
 cd scripts
-# uv sync
-# source venv/bin/activate
-if [ ! -d "venv" ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv venv
-fi
-# source venv/bin/activate
-pip install -r requirements.txt
+CONDA_ENV_NAME="aria_shi"
 
+if ! conda env list | grep -q "^${CONDA_ENV_NAME} "; then
+    echo "Creating conda environment '${CONDA_ENV_NAME}'..."
+    conda create -n "${CONDA_ENV_NAME}" python=3.9 -y
+fi
+
+eval "$(conda shell.bash hook)"
+conda activate "${CONDA_ENV_NAME}"
+pip install -r requirements.txt
 
 python3 pipeline.py "$VRS_FILE" 0 1
 cd ..
