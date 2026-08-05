@@ -1,6 +1,6 @@
 #ifndef KINLIB_RESOURCES_
 #define KINLIB_RESOURCES_
 
-#define KINLIB_RESOURCES_DIR "/home/andrei/Work/garcia/lab/robotics/kinlib-aria/files/"
+#define KINLIB_RESOURCES_DIR "/Users/mgoldhaber2027/Desktop/kinlib-aria/files/"
 
 #endif
