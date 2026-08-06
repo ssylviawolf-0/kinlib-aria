@@ -934,6 +934,85 @@ def plot_with_plotly(
     print(f"Interactive 3D plot saved to {html_out}")
 
 
+def ideate_pose(i, way, pose, df):
+    cut_noise_ind = i
+    # print(
+    #     df.iloc[i, 3],
+    #     df.iloc[i + 1, 3],
+    #     df.iloc[i + 2, 3],
+    # )
+    # print(pose)
+    while (
+        abs(df.iloc[i, 3] - pose[0]) <= 0.01
+        and abs(df.iloc[i + 1, 3] - pose[1]) <= 0.01
+        and abs(df.iloc[i + 2, 3] - pose[2]) <= 0.01
+    ):
+        cut_noise_ind = i
+        if way == "back":
+            i -= 4
+        else:
+            i += 4
+
+    if way == "back":
+        i -= 4
+    else:
+        i += 4
+
+    if (
+        i >= 0
+        and i + 2 < len(df)
+        and abs(df.iloc[i, 3] - pose[0]) <= 0.01
+        and abs(df.iloc[i + 1, 3] - pose[1]) <= 0.01
+        and abs(df.iloc[i + 2, 3] - pose[2]) <= 0.01
+    ):
+        cut_noise_ind = ideate_pose(i, way, pose, df)
+
+    # print(cut_noise_ind)
+    return cut_noise_ind
+
+
+def remove_noise(current_tag):
+    output_dir = os.path.join(OUTPUT_FOLDER, "final_reference", current_tag)
+    object_formatted_file = os.path.join(output_dir, "world_object_formatted.csv")
+    global april_tag_noise
+    april_tag_noise = pd.read_csv(object_formatted_file)
+    initial_pose = (
+        round(april_tag_noise.iloc[0, 3], 2),
+        round(april_tag_noise.iloc[1, 3], 2),
+        round(april_tag_noise.iloc[2, 3], 2),
+    )
+    final_pose = (
+        round(april_tag_noise.iloc[len(april_tag_noise) - 4, 3], 2),
+        round(april_tag_noise.iloc[len(april_tag_noise) - 3, 3], 2),
+        round(april_tag_noise.iloc[len(april_tag_noise) - 2, 3], 2),
+    )
+    i = 4
+    print(beg_cut_noise_ind)
+    j = len(april_tag_noise) - 8
+    end_cut_noise_ind = ideate_pose(j, "back", final_pose)
+    print(end_cut_noise_ind)
+    obj_traj = april_tag_noise.iloc[beg_cut_noise_ind:end_cut_noise_ind]
+    print(obj_traj)
+    object_poses = []
+    for i in range(1, len(obj_traj)):
+        if i <= 3 | i >= len(obj_traj) - 5:
+            object_poses.append(
+                {
+                    "col1": round(obj_traj.iloc[i, 0], 2),
+                    "col2": round(obj_traj.iloc[i, 1], 2),
+                    "col3": round(obj_traj.iloc[i, 2], 2),
+                    "col4": round(obj_traj.iloc[i, 3], 2),
+                }
+            )
+    print(object_poses)
+    pd.DataFrame(obj_traj).to_csv(
+        os.path.join(output_dir, "world_object_no_noise_pipeline.csv"), index=False
+    )
+    pd.DataFrame(object_poses).to_csv(
+        os.path.join(output_dir, "object_poses_pipeline.csv"), index=False
+    )
+
+
 def ideate_pose(i, way, pose):
     cut_noise_ind = i
     print(
@@ -1102,5 +1181,3 @@ plot_with_plotly(
     object_filename="world_object_smoothed.csv",
     plot_suffix="smoothed",
 )
-remove_noise("APRIL_TAG_OBJ")
-remove_noise("APRIL_TAG_STATIC")

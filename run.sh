@@ -10,7 +10,7 @@ VRS_FILE="$1"
 VRS_BASENAME=$(basename "$VRS_FILE")
 
 PREFIX=$(basename "$VRS_FILE" .vrs)
-OUTPUT_FOLDER="outputs/output_${PREFIX}"
+OUTPUT_FOLDER="scripts/outputs/output_${PREFIX}"
 
 echo "VRS file: $VRS_FILE"
 
@@ -35,7 +35,7 @@ echo "Moving CSVs..."
 DESTINATION="$(pwd)/files/Demonstrations/aria_project"
 mkdir -p "$DESTINATION"
 
-cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/world_object_smoothed.csv" "$DESTINATION/"
+cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/world_object_formatted_smoothed.csv" "$DESTINATION/"
 cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/object_poses_pipeline.csv" "$DESTINATION/"
 
 echo "Compiling Cpp code..."
@@ -45,7 +45,7 @@ docker exec -w /project "$CONTAINER_NAME" make
 
 echo "Pray this works"
 docker exec -w /project "$CONTAINER_NAME" ./bin/kinlib_projectaria \
-    "files/Demonstrations/aria_project/world_object_smoothed.csv" \
+    "files/Demonstrations/aria_project/world_object_formatted_smoothed.csv" \
     "files/Demonstrations/aria_project/object_poses_pipeline.csv"
 
 echo "Moving output files for simulation..."

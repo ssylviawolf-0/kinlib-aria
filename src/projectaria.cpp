@@ -255,40 +255,18 @@ void makeSimulationGripperCSV(const std::string &newfilename,
 }
 
 int main() {
-  //   define panda robot
-  // lets just use panda for now idc
   Eigen::IOFormat CleanFmt(Eigen::FullPrecision, 0, "\t", "\n");
 
-  // this will hopefully not be needed soon
-  //   makeDummyGripperCSV(std::string(KINLIB_RESOURCES_DIR) +
-  //   "Demonstrations/aria_project/dummy_gripper.csv",
-  //   std::string(KINLIB_RESOURCES_DIR) +
-  //   "Demonstrations/aria_project/ee_traj.csv");
-  // THIS IS THE ONE THAT WORKS
-  // makeDummyGripperCSV(std::string(KINLIB_RESOURCES_DIR) +
-  // "Demonstrations/aria_project/dummy_gripper.csv",
-  // std::string(KINLIB_RESOURCES_DIR) +
-  // "Demonstrations/aria_project/world_object_formatted.csv");
-  // makeDummyGripperCSV(std::string(KINLIB_RESOURCES_DIR) +
-  // "Demonstrations/aria_project/dummy_gripper.csv",
-  // std::string(KINLIB_RESOURCES_DIR) +
-  // "Demonstrations/aria_project/world_object_formatted_move_camr.csv");
-  // makeDummyGripperCSV(std::string(KINLIB_RESOURCES_DIR) +
-  // "Demonstrations/aria_project/dummy_gripper.csv",
-  // std::string(KINLIB_RESOURCES_DIR) +
-  // "Demonstrations/aria_project/world_object_no_noise_pipeline.csv");
   makeDummyGripperCSV(
       std::string(KINLIB_RESOURCES_DIR) +
           "Demonstrations/aria_project/dummy_gripper.csv",
       std::string(KINLIB_RESOURCES_DIR) +
-          "Demonstrations/aria_project/world_object_smoothed.csv");
-
-  // JUST RUN THIS ONCE
+          "Demonstrations/aria_project/world_object_formatted_smoothed.csv");
 
   kinlib::Manipulator panda_manipulator;
 
-  // CHANGE FOR DIFF ROBOT
   // moving into the joints
+  // CHANGE FOR DIFF ROBOT
   // these are specifically for baxter but can be changed
   std::array<std::string, 7> joint_names{
       "pandaJoint1", "pandaJoint2", "pandaJoint3", "pandaJoint4",
@@ -334,16 +312,6 @@ int main() {
     jnt_limits.lower_limit_ = joint_limits(i, 0);
     jnt_limits.upper_limit_ = joint_limits(i, 1);
 
-    // Ignore gst_0 being passed as joint tip for every joint as joint tip is
-    // not used to do any computation
-    // std::cout << "--- ROBOT CONFIGURATION MATRIX SIZES ---" << std::endl;
-    // std::cout << "joint_axes size:  " << joint_axes.rows() << "x" <<
-    // joint_axes.cols() << std::endl; std::cout << "joint_q size:     " <<
-    // joint_q.rows()    << "x" << joint_q.cols()    << std::endl; std::cout <<
-    // "joint_limits size:" << joint_limits.rows() << "x" << joint_limits.cols()
-    // << std::endl; std::cout << "----------------------------------------" <<
-    // std::endl;
-
     panda_manipulator.addJoint(kinlib::JointType::Revolute, joint_names[i],
                                jnt_axis, jnt_q, jnt_limits, gst_0);
   }
@@ -351,30 +319,10 @@ int main() {
 
   kinlib::KinematicsSolver kin_solver(panda_manipulator);
 
-  // User Guided Motion Planner
-  // THIS ONE WORKS
-  // Eigen::MatrixXd recorded_demo =
-  // loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) +
-  // "Demonstrations/aria_project/world_object_formatted.csv");
-  //   Eigen::MatrixXd recorded_demo =
-  //   loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) +
-  //   "Demonstrations/aria_project/world_object_formatted_move_camr.csv");
-  //   Eigen::MatrixXd recorded_demo =
-  //   loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) +
-  //   "Demonstrations/aria_project/world_object_no_noise_pipeline.csv");
   Eigen::MatrixXd recorded_demo = loadCSV<Eigen::MatrixXd>(
       std::string(KINLIB_RESOURCES_DIR) +
-      "Demonstrations/aria_project/world_object_smoothed.csv");
+      "Demonstrations/aria_project/world_object_formatted_smoothed.csv");
 
-  // std::cout << "demo" << std::endl;
-  // COMMENTED OUT IS THE ONE THAT WORKS
-  //   Eigen::MatrixXd object_poses =
-  //   loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) +
-  //   "Demonstrations/aria_project/object_poses.csv"); Eigen::MatrixXd
-  //   object_poses = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR)
-  //   + "Demonstrations/aria_project/obj_poses_move.csv"); Eigen::MatrixXd
-  //   object_poses = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR)
-  //   + "Demonstrations/aria_project/object_poses_pipeline.csv");
   Eigen::MatrixXd object_poses = loadCSV<Eigen::MatrixXd>(
       std::string(KINLIB_RESOURCES_DIR) +
       "Demonstrations/aria_project/object_poses_pipeline.csv");
@@ -439,26 +387,12 @@ int main() {
   kinlib::TaskInstance new_task_instance;
 
   new_task_instance.object_poses = demo.task_instance.object_poses;
-  // we need to then set it up like this
-  // so this is EXACTLY where the obj is now
-  // can change
 
-  // MESSING WITH THIS
-
-  // how to find correct ones
-  // so this is physically placing the block
-  // trying out a specif loc
-  // THIS is partially why it was erroring
   new_task_instance.object_poses[0](0, 3) = 0.5;
   new_task_instance.object_poses[0](1, 3) = -0.1;
-  // these heights might be wrong
-  // new_task_instance.object_poses[0](2,3) = 0.0255;
   new_task_instance.object_poses[0](2, 3) = 0.35;
   new_task_instance.object_poses[1](0, 3) = 0.5;
-  // With -0.1 as start pos, the bounds of how far the obj can be are
   new_task_instance.object_poses[1](1, 3) = -0.3;
-  // these heights might be wrong
-  // new_task_instance.object_poses[1](2,3) = 0.0755;
   new_task_instance.object_poses[1](2, 3) = 0.35;
 
   std::cout << new_task_instance.object_poses[1] << '\n';
@@ -467,22 +401,10 @@ int main() {
   kinlib::ErrorCodes res =
       kinlib::UserGuidedMotionPlanner::planMotionForNewTaskInstance(
           demo, new_task_instance, new_motion_plan);
-  // std::cout << new_motion_plan[0] << std::endl;
   std::cout << "boom" << std::endl;
   saveGuidingPosesRaw("guiding_poses.csv", new_motion_plan);
   makeDummyGripperCSV("new_gripper.csv", "guiding_poses.csv");
 
-  // SHOULD CHANGE THIS LINE
-
-  // MESSSING WITH THIS
-  // Eigen::Vector3d rigid_transform (0.0, 2.0, 2.0);
-
-  // what should this dist be?
-  // rn it is emulating the exact block directory
-  // ee_traj is calculated from where?
-  // we want it to be abt halfway up
-  // This defn the dist between the gripper and the starting block location
-  // fig out how find it
   std::vector<double> motion_plans_gripper_cond;
   Eigen::VectorXd init_jnt_val(7);
   init_jnt_val << 0., -0.7854, 0., -2.3562, 0., 1.5708, 0.7854;
@@ -520,8 +442,6 @@ int main() {
     // motion_plan_result, plan_info,outer_threshold, inner_threshold);
     std::cout << "init pos: " << init_ee_g << std::endl;
     std::cout << "goal pos: " << goal_ee_g << std::endl;
-    // hard code since since the demo loose gripper early
-    // std::cout << "Check vec " << goal_ee_g << std::endl;
     all_motion_plans.insert(all_motion_plans.end(), motion_plan_result.begin(),
                             motion_plan_result.end());
     std::cout << "is this the seg err" << std::endl;
@@ -532,18 +452,8 @@ int main() {
     if (steps < new_motion_plan.size()) {
       end_block_joints += motion_plan_result.size();
     }
-    // std::cout << motion_plan_result << std::endl;
     init_jnt_val = motion_plan_result.back();
 
-    // if (!motion_plan_result.empty()) {
-    //     init_jnt_val = motion_plan_result.back();
-    //     std::cout << init_jnt_val << std::endl;
-    //     // init_ee_g = goal_ee_g;
-    // }
-    // else {
-    //     // std::cout << "skipping pos " << steps << " which is: " <<
-    //     goal_ee_g << std::endl; break;
-    // }
     std::cout << "number of steps: " << steps << std::endl;
     std::cout << init_jnt_val << std::endl;
   }
@@ -560,5 +470,3 @@ int main() {
   // WHICH IS BASED ON SPECIF ROBOT WE R USING
   // && i will do this later
 }
-
-// demo: (0.5,0,0.05)->(0.4,0.4,0.05)
