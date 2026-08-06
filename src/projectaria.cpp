@@ -261,7 +261,7 @@ int main() {
       std::string(KINLIB_RESOURCES_DIR) +
           "Demonstrations/aria_project/dummy_gripper.csv",
       std::string(KINLIB_RESOURCES_DIR) +
-          "Demonstrations/aria_project/world_object_formatted_smoothed.csv");
+          "Demonstrations/aria_project/world_object_formatted.csv");
 
   kinlib::Manipulator panda_manipulator;
 
@@ -321,7 +321,7 @@ int main() {
 
   Eigen::MatrixXd recorded_demo = loadCSV<Eigen::MatrixXd>(
       std::string(KINLIB_RESOURCES_DIR) +
-      "Demonstrations/aria_project/world_object_formatted_smoothed.csv");
+      "Demonstrations/aria_project/world_object_formatted.csv");
 
   Eigen::MatrixXd object_poses = loadCSV<Eigen::MatrixXd>(
       std::string(KINLIB_RESOURCES_DIR) +
