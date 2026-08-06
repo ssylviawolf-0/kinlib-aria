@@ -11,6 +11,7 @@ from projectaria_tools.core.sensor_data import (
 from scipy.interpolate import interp1d
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import Slerp
+from scipy.signal import savgol_filter
 
 import plotly.graph_objects as go
 
@@ -845,23 +846,21 @@ def plot_with_mujoco():
     pass
 
 
-def plot_with_plotly(current_tag):
-    # plot them in html files
+def plot_with_plotly(
+    current_tag, object_filename="world_object.csv", plot_suffix="raw"
+):
     output_dir = os.path.join(OUTPUT_FOLDER, "final_reference", current_tag)
 
     slam_file = os.path.join(output_dir, "world_slam.csv")
     hand_file = os.path.join(output_dir, "world_hand.csv")
-    object_file = os.path.join(output_dir, "world_object.csv")
-    object_formatted_file = os.path.join(
-        output_dir, "world_object_formatted.csv"
-    )  # don't need this
+    object_file = os.path.join(output_dir, object_filename)
 
     if not (
         os.path.exists(slam_file)
         and os.path.exists(hand_file)
         and os.path.exists(object_file)
     ):
-        print("no csvs")
+        print(f"Missing CSVs in {output_dir}. Cannot plot {plot_suffix}.")
         return
 
     df_slam = pd.read_csv(slam_file)
@@ -893,19 +892,25 @@ def plot_with_plotly(current_tag):
         )
     )
 
+    object_mode = "lines+markers" if plot_suffix == "smoothed" else "markers"
+    object_color = "orange" if plot_suffix == "smoothed" else "red"
+
     fig.add_trace(
         go.Scatter3d(
             x=df_object["tx"],
             y=df_object["ty"],
             z=df_object["tz"],
-            mode="markers",
-            name="april tag data (transformed)",
-            marker=dict(size=4, color="red", symbol="diamond"),
+            mode=object_mode,
+            name=f"april tag data ({plot_suffix})",
+            marker=dict(size=4, color=object_color, symbol="diamond"),
+            line=dict(color=object_color, width=2)
+            if plot_suffix == "smoothed"
+            else None,
         )
     )
 
     fig.update_layout(
-        title="global space",
+        title=f"global space ({plot_suffix})",
         scene=dict(
             xaxis_title="x (meters)",
             yaxis_title="y (meters)",
@@ -922,9 +927,9 @@ def plot_with_plotly(current_tag):
         margin=dict(l=0, r=0, b=0, t=40),
     )
 
-    fig.show()
-
-    html_out = os.path.join(OUTPUT_FOLDER, f"trajectory_plot_{current_tag}.html")
+    html_out = os.path.join(
+        OUTPUT_FOLDER, f"trajectory_plot_{current_tag}_{plot_suffix}.html"
+    )
     fig.write_html(html_out)
     print(f"Interactive 3D plot saved to {html_out}")
 
@@ -1004,6 +1009,77 @@ def remove_noise(current_tag):
     )
 
 
+def smooth_trajectory(current_tag, window_length=11, polyorder=3):
+    output_dir = os.path.join(OUTPUT_FOLDER, "final_reference", current_tag)
+    input_file = os.path.join(output_dir, "world_object.csv")
+
+    if not os.path.exists(input_file):
+        print(f"Cannot find {input_file} to smooth.")
+        return
+
+    df = pd.read_csv(input_file)
+
+    if len(df) < window_length:
+        window_length = len(df) if len(df) % 2 != 0 else len(df) - 1
+
+    if window_length < 3:
+        print(f"Not enough data to smooth for {current_tag}.")
+        return
+
+    df["tx_smooth"] = savgol_filter(df["tx"], window_length, polyorder)
+    df["ty_smooth"] = savgol_filter(df["ty"], window_length, polyorder)
+    df["tz_smooth"] = savgol_filter(df["tz"], window_length, polyorder)
+
+    qx_s = savgol_filter(df["qx"], window_length, polyorder)
+    qy_s = savgol_filter(df["qy"], window_length, polyorder)
+    qz_s = savgol_filter(df["qz"], window_length, polyorder)
+    qw_s = savgol_filter(df["qw"], window_length, polyorder)
+
+    norms = np.sqrt(qx_s**2 + qy_s**2 + qz_s**2 + qw_s**2)
+    df["qx_smooth"] = qx_s / norms
+    df["qy_smooth"] = qy_s / norms
+    df["qz_smooth"] = qz_s / norms
+    df["qw_smooth"] = qw_s / norms
+
+    df_smoothed = df[
+        [
+            "timestamp_ns",
+            "tx_smooth",
+            "ty_smooth",
+            "tz_smooth",
+            "qx_smooth",
+            "qy_smooth",
+            "qz_smooth",
+            "qw_smooth",
+        ]
+    ].copy()
+    df_smoothed.columns = ["timestamp_ns", "tx", "ty", "tz", "qx", "qy", "qz", "qw"]
+
+    smoothed_file = os.path.join(output_dir, "world_object_smoothed.csv")
+    df_smoothed.to_csv(smoothed_file, index=False)
+    print(f"Saved smoothed trajectory to {smoothed_file}")
+
+    formatted_smoothed = []
+    for i in range(len(df_smoothed)):
+        row = df_smoothed.iloc[i]
+        T_mat = get_matrix_from_pose(
+            row["tx"], row["ty"], row["tz"], row["qx"], row["qy"], row["qz"], row["qw"]
+        )
+        for r in T_mat:
+            formatted_smoothed.append(
+                {
+                    "col1": round(r[0], 2),
+                    "col2": round(r[1], 2),
+                    "col3": round(r[2], 2),
+                    "col4": round(r[3], 2),
+                }
+            )
+
+    formatted_file = os.path.join(output_dir, "world_object_formatted_smoothed.csv")
+    pd.DataFrame(formatted_smoothed).to_csv(formatted_file, index=False)
+    print(f"Saved smoothed formatted trajectory to {formatted_file}")
+
+
 create_video_with_hands()
 get_mps_data()
 get_april_tag_data()
@@ -1012,7 +1088,19 @@ interpolate_transform("APRIL_TAG_OBJ")
 interpolate_transform("APRIL_TAG_STATIC")
 compute_reference_frame("APRIL_TAG_OBJ")
 compute_reference_frame("APRIL_TAG_STATIC")
-plot_with_plotly("APRIL_TAG_OBJ")
-plot_with_plotly("APRIL_TAG_STATIC")
+smooth_trajectory("APRIL_TAG_OBJ", window_length=15, polyorder=3)
+smooth_trajectory("APRIL_TAG_STATIC", window_length=15, polyorder=3)
+plot_with_plotly("APRIL_TAG_OBJ", object_filename="world_object.csv", plot_suffix="raw")
+plot_with_plotly(
+    "APRIL_TAG_STATIC", object_filename="world_object.csv", plot_suffix="raw"
+)
+plot_with_plotly(
+    "APRIL_TAG_OBJ", object_filename="world_object_smoothed.csv", plot_suffix="smoothed"
+)
+plot_with_plotly(
+    "APRIL_TAG_STATIC",
+    object_filename="world_object_smoothed.csv",
+    plot_suffix="smoothed",
+)
 remove_noise("APRIL_TAG_OBJ")
 remove_noise("APRIL_TAG_STATIC")

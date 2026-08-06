@@ -281,7 +281,7 @@ int main() {
       std::string(KINLIB_RESOURCES_DIR) +
           "Demonstrations/aria_project/dummy_gripper.csv",
       std::string(KINLIB_RESOURCES_DIR) +
-          "Demonstrations/aria_project/world_object_formatted.csv");
+          "Demonstrations/aria_project/world_object_smoothed.csv");
 
   // JUST RUN THIS ONCE
 
@@ -364,7 +364,7 @@ int main() {
   //   "Demonstrations/aria_project/world_object_no_noise_pipeline.csv");
   Eigen::MatrixXd recorded_demo = loadCSV<Eigen::MatrixXd>(
       std::string(KINLIB_RESOURCES_DIR) +
-      "Demonstrations/aria_project/world_object_formatted.csv");
+      "Demonstrations/aria_project/world_object_smoothed.csv");
 
   // std::cout << "demo" << std::endl;
   // COMMENTED OUT IS THE ONE THAT WORKS

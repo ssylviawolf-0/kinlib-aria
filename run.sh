@@ -29,14 +29,14 @@ trap cleanup EXIT
 docker run -d --rm --name "$CONTAINER_NAME" -v "$(pwd):/project" aria_env_img
 
 echo "Running pipeline.py..."
-docker exec -w /project/scripts "$CONTAINER_NAME" python3 pipeline.py "$VRS_BASENAME" 0 1
+docker exec -w /project/scripts "$CONTAINER_NAME" python3 pipeline.py "$VRS_BASENAME" 1 0
 
 echo "Moving CSVs..." 
 DESTINATION="$(pwd)/files/Demonstrations/aria_project"
 mkdir -p "$DESTINATION"
 
-cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_STATIC/world_object_no_noise_pipeline.csv" "$DESTINATION/"
-cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_STATIC/object_poses_pipeline.csv" "$DESTINATION/"
+cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/world_object_smoothed.csv" "$DESTINATION/"
+cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/object_poses_pipeline.csv" "$DESTINATION/"
 
 echo "Compiling Cpp code..."
 docker exec -w /project "$CONTAINER_NAME" rm -rf CMakeCache.txt CMakeFiles/
@@ -45,7 +45,7 @@ docker exec -w /project "$CONTAINER_NAME" make
 
 echo "Pray this works"
 docker exec -w /project "$CONTAINER_NAME" ./bin/kinlib_projectaria \
-    "files/Demonstrations/aria_project/world_object_formatted.csv" \
+    "files/Demonstrations/aria_project/world_object_smoothed.csv" \
     "files/Demonstrations/aria_project/object_poses_pipeline.csv"
 
 echo "Moving output files for simulation..."
