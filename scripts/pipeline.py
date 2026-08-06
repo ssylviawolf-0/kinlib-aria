@@ -1092,9 +1092,18 @@ def smooth_trajectory(current_tag, window_length=11, polyorder=3):
     if window_length < 3:
         print(f"Not enough data to smooth for {current_tag}.")
         return
+
+    # Align quaternion signs to avoid sign-flip corruption before smoothing
+    q = df[["qx", "qy", "qz", "qw"]].to_numpy().copy()
+    for i in range(1, len(q)):
+        if np.dot(q[i], q[i - 1]) < 0:
+            q[i] = -q[i]
+    df["qx"], df["qy"], df["qz"], df["qw"] = q[:, 0], q[:, 1], q[:, 2], q[:, 3]
+
     df["tx_smooth"] = savgol_filter(df["tx"], window_length, polyorder)
     df["ty_smooth"] = savgol_filter(df["ty"], window_length, polyorder)
     df["tz_smooth"] = savgol_filter(df["tz"], window_length, polyorder)
+
     qx_s = savgol_filter(df["qx"], window_length, polyorder)
     qy_s = savgol_filter(df["qy"], window_length, polyorder)
     qz_s = savgol_filter(df["qz"], window_length, polyorder)
@@ -1104,6 +1113,7 @@ def smooth_trajectory(current_tag, window_length=11, polyorder=3):
     df["qy_smooth"] = qy_s / norms
     df["qz_smooth"] = qz_s / norms
     df["qw_smooth"] = qw_s / norms
+
     df_smoothed = df[
         [
             "timestamp_ns",
@@ -1140,8 +1150,6 @@ def smooth_trajectory(current_tag, window_length=11, polyorder=3):
     pd.DataFrame(formatted_smoothed).to_csv(formatted_file, index=False)
     print(f"Saved smoothed formatted trajectory to {formatted_file}")
 
-    # object_poses_pipeline_smoothed.csv: initial + final object pose,
-    # each as a rounded 4x4 homogeneous transform (analogue of remove_noise's output)
     object_poses = []
     for idx in (0, len(df_smoothed) - 1):
         row = df_smoothed.iloc[idx]
