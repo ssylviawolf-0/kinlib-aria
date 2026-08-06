@@ -4,4 +4,4 @@ scipy
 projectaria_tools
 plotly
 pupil-apriltags
-opencv-python
+opencv-python-headless

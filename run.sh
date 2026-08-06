@@ -1,76 +1,66 @@
 #!/bin/bash
-# USAGE: sh run.sh <vrs file>
-
 set -e
 
 if [ -z "$1" ]; then
-    echo "usage: sh run.sh <path to vrs file>"
+    echo "Usage: sh run.sh <path to vrs file>"
     exit 1
 fi
 
 VRS_FILE="$1"
-
-echo "VRS file: $VRS_FILE"
-cp "$VRS_FILE" "./scripts"
+VRS_BASENAME=$(basename "$VRS_FILE")
 
 PREFIX=$(basename "$VRS_FILE" .vrs)
 OUTPUT_FOLDER="outputs/output_${PREFIX}"
 
-if [ ! -d "external/eigen" ]; then
-    echo "Eigen is not installed. Installing rn..."
-    mkdir -p external
-    git clone --branch 3.4.0 https://gitlab.com/libeigen/eigen.git external/eigen
-else
-    echo "Eigen is there very good"
-fi
+echo "VRS file: $VRS_FILE"
 
+cp "$VRS_FILE" "./scripts/$VRS_BASENAME"
 
-echo "Running pipeline.py on vrs file"
+CONTAINER_NAME="aria_env_cont"
 
-cd scripts
-CONDA_ENV_NAME="aria_shi"
+# deepseek with the proper cleanup
+cleanup() {
+    echo "Cleaning up: Stopping Docker container..."
+    docker stop "$CONTAINER_NAME" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
 
-if ! conda env list | grep -q "^${CONDA_ENV_NAME} "; then
-    echo "Creating conda environment '${CONDA_ENV_NAME}'..."
-    conda create -n "${CONDA_ENV_NAME}" python=3.9 -y
-fi
+# container runs in the background (-d) mounted to the current directory
+docker run -d --rm --name "$CONTAINER_NAME" -v "$(pwd):/project" aria_env_img
 
-eval "$(conda shell.bash hook)"
-conda activate "${CONDA_ENV_NAME}"
-pip install -r requirements.txt
+# bad fix
+echo "Setting up python env..."
+docker exec -w /project/scripts "$CONTAINER_NAME" uv pip install --system --break-system-packages -r requirements.txt
 
-python3 pipeline.py "$VRS_FILE" 0 1
-cd ..
-# uv run scripts/pipeline.py "$VRS_FILE" 0 1
+echo "Running pipeline.py..."
+docker exec -w /project/scripts "$CONTAINER_NAME" python3 pipeline.py "$VRS_BASENAME" 0 1
 
-echo "Moving CSVs into the right directories for the CPP"
-
+echo "Moving CSVs..." 
 DESTINATION="$(pwd)/files/Demonstrations/aria_project"
 mkdir -p "$DESTINATION"
 
-# cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_STATIC/world_hand_no_noise_pipeline.csv" "$DESTINATION" 
-cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_STATIC/world_object_no_noise_pipeline.csv" "$DESTINATION"
+cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_STATIC/world_object_no_noise_pipeline.csv" "$DESTINATION/"
+cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_STATIC/object_poses_pipeline.csv" "$DESTINATION/"
 
+echo "Compiling Cpp code..."
+docker exec -w /project "$CONTAINER_NAME" rm -rf CMakeCache.txt CMakeFiles/
+docker exec -w /project "$CONTAINER_NAME" cmake .
+docker exec -w /project "$CONTAINER_NAME" make
 
-cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_STATIC/object_poses_pipeline.csv" "$DESTINATION"
+echo "Pray this works"
+docker exec -w /project "$CONTAINER_NAME" ./bin/kinlib_projectaria \
+    "files/Demonstrations/aria_project/world_object_formatted.csv" \
+    "files/Demonstrations/aria_project/object_poses_pipeline.csv"
 
-cmake .
-make
+echo "Moving output files for simulation..."
+cp project_aria.csv scripts/
+cp simulation_gripper.csv scripts/
 
-echo "Running the object"
-./bin/kinlib_projectaria \
-    "${DESTINATION}/world_object_formatted.csv" \
-    "${DESTINATION}/object_poses_pipeline.csv"
+echo "Running simulation.py..."
+docker exec -w /project/scripts "$CONTAINER_NAME" python3 simulation.py project_aria.csv simulation_gripper.csv
 
-# still have to run the simulation
-
-cp project_aria.csv scripts
-cp simulation_gripper.csv scripts
-
-cd scripts
-python3 simulation.py project_aria.csv simulation_gripper.csv
-cd ..
-
-
+echo "Cleaning up CSVs..."
 rm scripts/project_aria.csv
 rm scripts/simulation_gripper.csv
+
+echo "Done"

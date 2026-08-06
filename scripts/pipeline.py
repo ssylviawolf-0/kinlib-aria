@@ -180,17 +180,33 @@ def create_video_with_hands():
         "slam-side-right",
     ]
 
-    rgb_stream_id = vrs_data_provider.get_stream_id_from_label(rgb_label)
-    print(f"RGB stream id: {rgb_stream_id}")
-    slam_stream_ids = [
-        vrs_data_provider.get_stream_id_from_label(label)
-        for label in slam_camera_labels
-    ]
+    all_camera_labels = slam_camera_labels + [rgb_label]
+    videos_folder_path = os.path.join(OUTPUT_FOLDER, "videos")
+    os.makedirs(videos_folder_path, exist_ok=True)
+
+    labels_to_process = []
+    for label in all_camera_labels:
+        output_filename = f"{vrs_file_path[0:5]}_{label}_output.mp4"
+        output_path = os.path.join(videos_folder_path, output_filename)
+
+        VIDEO_PATHS[label] = output_path
+
+        if not os.path.exists(output_path):
+            labels_to_process.append(label)
+        else:
+            print(f"Skipping {label}: {output_path} already exists.")
+
+    if not labels_to_process:
+        print("All requested videos exist. Skipping processing.")
+        return
 
     deliver_options = vrs_data_provider.get_default_deliver_queued_options()
     deliver_options.deactivate_stream_all()
-    for stream_id in slam_stream_ids + [rgb_stream_id]:
+
+    for label in labels_to_process:
+        stream_id = vrs_data_provider.get_stream_id_from_label(label)
         deliver_options.activate_stream(stream_id)
+        print(f"Activated stream for processing: {label} (ID: {stream_id})")
 
     video_writers = {}
     output_fps = OUTPUT_FPS
@@ -214,14 +230,7 @@ def create_video_with_hands():
         if camera_label not in video_writers:
             height, width = img_bgr.shape[:2]
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            output_filename = f"{vrs_file_path[0:5]}_{camera_label}_output.mp4"
-
-            # should move this to the top
-            videos_folder_path = os.path.join(OUTPUT_FOLDER, "videos")
-            os.makedirs(videos_folder_path, exist_ok=True)
-            output_path = os.path.join(videos_folder_path, output_filename)
-
-            VIDEO_PATHS.update({camera_label: output_path})
+            output_path = VIDEO_PATHS[camera_label]
 
             video_writers[camera_label] = cv2.VideoWriter(
                 output_path, fourcc, output_fps, (width, height)
@@ -250,8 +259,8 @@ def get_mps_data():
     os.makedirs(mps_output_folder, exist_ok=True)
 
     command = [
-        "uv",
-        "run",
+        # "uv",
+        # "run",
         "gen2_mp_csv_exporter",
         "--vrs-path",
         vrs_file_path,
@@ -267,8 +276,15 @@ def get_mps_data():
         result = subprocess.run(command, check=True, text=True, capture_output=True)
         print(f"Output: {result.stdout}")
 
+    except subprocess.CalledProcessError as e:
+        print(f"ERROR! Command failed with exit code {e.returncode}")
+        print(f"Stdout: {e.stdout}")
+        print(f"Stderr: {e.stderr}")
+        raise
+
     except Exception as e:
-        print(f"Error message: {e.__traceback__}")
+        print(f"unexpected error: {e}")
+        raise
 
 
 # VIDEO_PATHS = {

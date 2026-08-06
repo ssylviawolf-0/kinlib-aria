@@ -10,4 +10,4 @@ external/
 CMakeFiles
 outputs/
 bin/
-
+*.mp4
