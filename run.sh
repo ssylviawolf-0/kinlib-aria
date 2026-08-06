@@ -14,7 +14,8 @@ echo "VRS file: $VRS_FILE"
 cp "$VRS_FILE" "./scripts"
 
 PREFIX=$(basename "$VRS_FILE" .vrs)
-OUTPUT_FOLDER="outputs/output_${PREFIX}"
+# OUTPUT_FOLDER="outputs/output_${PREFIX}"
+OUTPUT_FOLDER="outputs/output_"
 
 if [ ! -d "external/eigen" ]; then
     echo "Eigen is not installed. Installing rn..."
@@ -28,11 +29,12 @@ fi
 echo "Running pipeline.py on vrs file"
 
 cd scripts
-CONDA_ENV_NAME="aria_shi"
-
+CONDA_ENV_NAME="new_aria_shi"
+# run this if it breaks!!!
+# conda remove -n "${CONDA_ENV_NAME}" --all -y
 if ! conda env list | grep -q "^${CONDA_ENV_NAME} "; then
     echo "Creating conda environment '${CONDA_ENV_NAME}'..."
-    conda create -n "${CONDA_ENV_NAME}" python=3.9 -y
+    conda create -n "${CONDA_ENV_NAME}" -c conda-forge python=3.11 "numpy<2.0.0" pybullet
 fi
 
 eval "$(conda shell.bash hook)"
@@ -59,7 +61,7 @@ make
 
 echo "Running the object"
 ./bin/kinlib_projectaria \
-    "${DESTINATION}/world_object_formatted.csv" \
+    "${DESTINATION}/world_object_no_noise_pipeline.csv" \
     "${DESTINATION}/object_poses_pipeline.csv"
 
 # still have to run the simulation

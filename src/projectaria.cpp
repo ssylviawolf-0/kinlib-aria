@@ -263,8 +263,8 @@ int main()
 // THIS IS THE ONE THAT WORKS
 // makeDummyGripperCSV(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/dummy_gripper.csv", std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/world_object_formatted.csv");
 // makeDummyGripperCSV(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/dummy_gripper.csv", std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/world_object_formatted_move_camr.csv");
-  //makeDummyGripperCSV(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/dummy_gripper.csv", std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/world_object_no_noise_pipeline.csv");
-  makeDummyGripperCSV(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/dummy_gripper.csv", std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/world_object_formatted (1).csv");
+  makeDummyGripperCSV(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/dummy_gripper.csv", std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/world_object_no_noise_pipeline.csv");
+  // makeDummyGripperCSV(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/dummy_gripper.csv", std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/world_object_formatted.csv");
 
   // JUST RUN THIS ONCE
 
@@ -333,21 +333,22 @@ int main()
     // THIS ONE WORKS
   // Eigen::MatrixXd recorded_demo = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/world_object_formatted.csv");
 //   Eigen::MatrixXd recorded_demo = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/world_object_formatted_move_camr.csv");
-//   Eigen::MatrixXd recorded_demo = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/world_object_no_noise_pipeline.csv");
-  Eigen::MatrixXd recorded_demo = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/world_object_formatted (1).csv");
+  Eigen::MatrixXd recorded_demo = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/world_object_no_noise_pipeline.csv");
+  // Eigen::MatrixXd recorded_demo = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/world_object_formatted.csv");
 
   // std::cout << "demo" << std::endl;
   // COMMENTED OUT IS THE ONE THAT WORKS
 //   Eigen::MatrixXd object_poses = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/object_poses.csv");
 //   Eigen::MatrixXd object_poses = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/obj_poses_move.csv");
 //   Eigen::MatrixXd object_poses = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/object_poses_pipeline.csv");
-  Eigen::MatrixXd object_poses = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/object_poses_pipelinee.csv");
+  Eigen::MatrixXd object_poses = loadCSV<Eigen::MatrixXd>(std::string(KINLIB_RESOURCES_DIR) + "Demonstrations/aria_project/object_poses_pipeline.csv");
 
 
   std::vector<Eigen::Matrix4d> recorded_ee_traj;
   std::vector<Eigen::Matrix4d> obj_poses;
   Eigen::Matrix4d end_effector_offset;
   // would this change based on file
+  // end_effector_offset << 0, -1, 0, 0, 0, 0, 1, -0.1034, -1, 0, 0, 0, 0, 0, 0, 1;
   end_effector_offset << 0, -1, 0, 0, 0, 0, 1, -0.1034, -1, 0, 0, 0, 0, 0, 0, 1;
   for(int i = 0; i < recorded_demo.rows()/4; i++)
   {
@@ -414,13 +415,13 @@ int main()
   new_task_instance.object_poses[0](1,3) = -0.1;
   // these heights might be wrong
   // new_task_instance.object_poses[0](2,3) = 0.0255;
-  new_task_instance.object_poses[0](2,3) = 0.35;
+  new_task_instance.object_poses[0](2,3) = 0.4;
   new_task_instance.object_poses[1](0,3) = 0.5;
   // With -0.1 as start pos, the bounds of how far the obj can be are 
   new_task_instance.object_poses[1](1,3) = -0.3;
   // these heights might be wrong
   //new_task_instance.object_poses[1](2,3) = 0.0755;
-  new_task_instance.object_poses[1](2,3) = 0.35;
+  new_task_instance.object_poses[1](2,3) = 0.4;
   
   
   std::cout << new_task_instance.object_poses[1] << '\n';
