@@ -12,9 +12,12 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
+
+COPY scripts/requirements.txt /tmp/requirements.txt
+
+RUN uv pip install --system --break-system-packages -r /tmp/requirements.txt
 
 WORKDIR /project
 

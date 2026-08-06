@@ -28,10 +28,6 @@ trap cleanup EXIT
 # container runs in the background (-d) mounted to the current directory
 docker run -d --rm --name "$CONTAINER_NAME" -v "$(pwd):/project" aria_env_img
 
-# bad fix
-echo "Setting up python env..."
-docker exec -w /project/scripts "$CONTAINER_NAME" uv pip install --system --break-system-packages -r requirements.txt
-
 echo "Running pipeline.py..."
 docker exec -w /project/scripts "$CONTAINER_NAME" python3 pipeline.py "$VRS_BASENAME" 0 1
 
@@ -57,7 +53,7 @@ cp project_aria.csv scripts/
 cp simulation_gripper.csv scripts/
 
 echo "Running simulation.py..."
-docker exec -w /project/scripts "$CONTAINER_NAME" python3 simulation.py project_aria.csv simulation_gripper.csv
+docker exec -w /project/scripts "$CONTAINER_NAME" python3 simulation.py project_aria.csv simulation_gripper.csv "$VRS_FILE"
 
 echo "Cleaning up CSVs..."
 rm scripts/project_aria.csv

@@ -5,7 +5,7 @@ import time
 import numpy as np
 import pybullet as p
 import pybullet_data
-import cv2  # We use OpenCV to manually encode the video
+import cv2
 
 
 def load_poses_csv(path, delimiter=",", skip_header=0, dtype=float):
@@ -14,12 +14,15 @@ def load_poses_csv(path, delimiter=",", skip_header=0, dtype=float):
     return M.reshape(k, 4, 4)
 
 
-def main(arg1, arg2):
+def main(arg1, arg2, arg3):
     project_aria_file = arg1
     simulation_gripper_file = arg2
-    video_output_path = "simulation_output.mp4"
+    try:
+        current = arg3.partition(".")[0]
+    except Exception as e:
+        current = arg3[:5]
+    video_output_path = f"simulation_output_{current}.mp4"
 
-    # Connect in DIRECT mode (headless)
     p.connect(p.DIRECT)
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
     p.setGravity(0, 0, -9.81)
@@ -31,7 +34,6 @@ def main(arg1, arg2):
     )
     plane_id = p.loadURDF("plane.urdf")
 
-    # --- Setup Virtual Camera ---
     width = 640
     height = 480
     view_matrix = p.computeViewMatrixFromYawPitchRoll(
@@ -46,8 +48,7 @@ def main(arg1, arg2):
         fov=60, aspect=width / height, nearVal=0.02, farVal=5
     )
 
-    # --- Setup OpenCV Video Writer ---
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Codec for MP4
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     out = cv2.VideoWriter(video_output_path, fourcc, 30.0, (width, height))
 
     arm_trajectory = np.loadtxt(project_aria_file, delimiter=",")
@@ -100,9 +101,7 @@ def main(arg1, arg2):
         for _ in range(2):
             p.stepSimulation()
 
-        # Render and capture frame every 4th iteration (~30 fps equivalent for the video)
         if i % 4 == 0:
-            # ER_TINY_RENDERER uses the CPU - completely safe for Docker!
             _, _, rgbImg, _, _ = p.getCameraImage(
                 width=width,
                 height=height,
@@ -111,22 +110,18 @@ def main(arg1, arg2):
                 renderer=p.ER_TINY_RENDERER,
             )
 
-            # Convert the raw data to an 8-bit unsigned integer array, then reshape
             frame = np.array(rgbImg, dtype=np.uint8).reshape((height, width, 4))
-            frame_rgb = frame[:, :, :3]  # Drop Alpha channel
-            frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)  # Convert to BGR
+            frame_rgb = frame[:, :, :3]
+            frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
             out.write(frame_bgr)
 
-    # Cleanup
     out.release()
     p.disconnect()
 
     abs_video_path = os.path.abspath(video_output_path)
-    print("\n" + "=" * 60)
-    print(" [SUCCESS] PyBullet Simulation Complete!")
-    print(f" [VIDEO SAVED AT]: {abs_video_path}")
-    print("=" * 60 + "\n")
+    print("PYBULLET WORKED!!!")
+    print(f"VIDEO SAVED AT: {abs_video_path}")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], sys.argv[3])
