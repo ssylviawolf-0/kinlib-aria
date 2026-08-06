@@ -325,7 +325,7 @@ int main() {
 
   Eigen::MatrixXd object_poses = loadCSV<Eigen::MatrixXd>(
       std::string(KINLIB_RESOURCES_DIR) +
-      "Demonstrations/aria_project/object_poses_pipeline.csv");
+      "Demonstrations/aria_project/object_poses_pipeline_smoothed.csv");
 
   std::vector<Eigen::Matrix4d> recorded_ee_traj;
   std::vector<Eigen::Matrix4d> obj_poses;

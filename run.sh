@@ -36,7 +36,7 @@ DESTINATION="$(pwd)/files/Demonstrations/aria_project"
 mkdir -p "$DESTINATION"
 
 cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/world_object_formatted_smoothed.csv" "$DESTINATION/"
-cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/object_poses_pipeline.csv" "$DESTINATION/"
+cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/object_poses_pipeline_smoothed.csv" "$DESTINATION/"
 
 echo "Compiling Cpp code..."
 docker exec -w /project "$CONTAINER_NAME" rm -rf CMakeCache.txt CMakeFiles/

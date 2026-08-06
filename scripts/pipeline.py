@@ -934,85 +934,6 @@ def plot_with_plotly(
     print(f"Interactive 3D plot saved to {html_out}")
 
 
-def ideate_pose(i, way, pose, df):
-    cut_noise_ind = i
-    # print(
-    #     df.iloc[i, 3],
-    #     df.iloc[i + 1, 3],
-    #     df.iloc[i + 2, 3],
-    # )
-    # print(pose)
-    while (
-        abs(df.iloc[i, 3] - pose[0]) <= 0.01
-        and abs(df.iloc[i + 1, 3] - pose[1]) <= 0.01
-        and abs(df.iloc[i + 2, 3] - pose[2]) <= 0.01
-    ):
-        cut_noise_ind = i
-        if way == "back":
-            i -= 4
-        else:
-            i += 4
-
-    if way == "back":
-        i -= 4
-    else:
-        i += 4
-
-    if (
-        i >= 0
-        and i + 2 < len(df)
-        and abs(df.iloc[i, 3] - pose[0]) <= 0.01
-        and abs(df.iloc[i + 1, 3] - pose[1]) <= 0.01
-        and abs(df.iloc[i + 2, 3] - pose[2]) <= 0.01
-    ):
-        cut_noise_ind = ideate_pose(i, way, pose, df)
-
-    # print(cut_noise_ind)
-    return cut_noise_ind
-
-
-def remove_noise(current_tag):
-    output_dir = os.path.join(OUTPUT_FOLDER, "final_reference", current_tag)
-    object_formatted_file = os.path.join(output_dir, "world_object_formatted.csv")
-    global april_tag_noise
-    april_tag_noise = pd.read_csv(object_formatted_file)
-    initial_pose = (
-        round(april_tag_noise.iloc[0, 3], 2),
-        round(april_tag_noise.iloc[1, 3], 2),
-        round(april_tag_noise.iloc[2, 3], 2),
-    )
-    final_pose = (
-        round(april_tag_noise.iloc[len(april_tag_noise) - 4, 3], 2),
-        round(april_tag_noise.iloc[len(april_tag_noise) - 3, 3], 2),
-        round(april_tag_noise.iloc[len(april_tag_noise) - 2, 3], 2),
-    )
-    i = 4
-    print(beg_cut_noise_ind)
-    j = len(april_tag_noise) - 8
-    end_cut_noise_ind = ideate_pose(j, "back", final_pose)
-    print(end_cut_noise_ind)
-    obj_traj = april_tag_noise.iloc[beg_cut_noise_ind:end_cut_noise_ind]
-    print(obj_traj)
-    object_poses = []
-    for i in range(1, len(obj_traj)):
-        if i <= 3 | i >= len(obj_traj) - 5:
-            object_poses.append(
-                {
-                    "col1": round(obj_traj.iloc[i, 0], 2),
-                    "col2": round(obj_traj.iloc[i, 1], 2),
-                    "col3": round(obj_traj.iloc[i, 2], 2),
-                    "col4": round(obj_traj.iloc[i, 3], 2),
-                }
-            )
-    print(object_poses)
-    pd.DataFrame(obj_traj).to_csv(
-        os.path.join(output_dir, "world_object_no_noise_pipeline.csv"), index=False
-    )
-    pd.DataFrame(object_poses).to_csv(
-        os.path.join(output_dir, "object_poses_pipeline.csv"), index=False
-    )
-
-
 def ideate_pose(i, way, pose):
     cut_noise_ind = i
     print(
@@ -1088,38 +1009,101 @@ def remove_noise(current_tag):
     )
 
 
+# def smooth_trajectory(current_tag, window_length=11, polyorder=3):
+#     output_dir = os.path.join(OUTPUT_FOLDER, "final_reference", current_tag)
+#     input_file = os.path.join(output_dir, "world_object.csv")
+#
+#     if not os.path.exists(input_file):
+#         print(f"Cannot find {input_file} to smooth.")
+#         return
+#
+#     df = pd.read_csv(input_file)
+#
+#     if len(df) < window_length:
+#         window_length = len(df) if len(df) % 2 != 0 else len(df) - 1
+#
+#     if window_length < 3:
+#         print(f"Not enough data to smooth for {current_tag}.")
+#         return
+#
+#     df["tx_smooth"] = savgol_filter(df["tx"], window_length, polyorder)
+#     df["ty_smooth"] = savgol_filter(df["ty"], window_length, polyorder)
+#     df["tz_smooth"] = savgol_filter(df["tz"], window_length, polyorder)
+#
+#     qx_s = savgol_filter(df["qx"], window_length, polyorder)
+#     qy_s = savgol_filter(df["qy"], window_length, polyorder)
+#     qz_s = savgol_filter(df["qz"], window_length, polyorder)
+#     qw_s = savgol_filter(df["qw"], window_length, polyorder)
+#
+#     norms = np.sqrt(qx_s**2 + qy_s**2 + qz_s**2 + qw_s**2)
+#     df["qx_smooth"] = qx_s / norms
+#     df["qy_smooth"] = qy_s / norms
+#     df["qz_smooth"] = qz_s / norms
+#     df["qw_smooth"] = qw_s / norms
+#
+#     df_smoothed = df[
+#         [
+#             "timestamp_ns",
+#             "tx_smooth",
+#             "ty_smooth",
+#             "tz_smooth",
+#             "qx_smooth",
+#             "qy_smooth",
+#             "qz_smooth",
+#             "qw_smooth",
+#         ]
+#     ].copy()
+#     df_smoothed.columns = ["timestamp_ns", "tx", "ty", "tz", "qx", "qy", "qz", "qw"]
+#
+#     smoothed_file = os.path.join(output_dir, "world_object_smoothed.csv")
+#     df_smoothed.to_csv(smoothed_file, index=False)
+#     print(f"Saved smoothed trajectory to {smoothed_file}")
+#
+#     formatted_smoothed = []
+#     for i in range(len(df_smoothed)):
+#         row = df_smoothed.iloc[i]
+#         T_mat = get_matrix_from_pose(
+#             row["tx"], row["ty"], row["tz"], row["qx"], row["qy"], row["qz"], row["qw"]
+#         )
+#         for r in T_mat:
+#             formatted_smoothed.append(
+#                 {
+#                     "col1": round(r[0], 2),
+#                     "col2": round(r[1], 2),
+#                     "col3": round(r[2], 2),
+#                     "col4": round(r[3], 2),
+#                 }
+#             )
+#
+#     formatted_file = os.path.join(output_dir, "world_object_formatted_smoothed.csv")
+#     pd.DataFrame(formatted_smoothed).to_csv(formatted_file, index=False)
+#     print(f"Saved smoothed formatted trajectory to {formatted_file}")
+
+
 def smooth_trajectory(current_tag, window_length=11, polyorder=3):
     output_dir = os.path.join(OUTPUT_FOLDER, "final_reference", current_tag)
     input_file = os.path.join(output_dir, "world_object.csv")
-
     if not os.path.exists(input_file):
         print(f"Cannot find {input_file} to smooth.")
         return
-
     df = pd.read_csv(input_file)
-
     if len(df) < window_length:
         window_length = len(df) if len(df) % 2 != 0 else len(df) - 1
-
     if window_length < 3:
         print(f"Not enough data to smooth for {current_tag}.")
         return
-
     df["tx_smooth"] = savgol_filter(df["tx"], window_length, polyorder)
     df["ty_smooth"] = savgol_filter(df["ty"], window_length, polyorder)
     df["tz_smooth"] = savgol_filter(df["tz"], window_length, polyorder)
-
     qx_s = savgol_filter(df["qx"], window_length, polyorder)
     qy_s = savgol_filter(df["qy"], window_length, polyorder)
     qz_s = savgol_filter(df["qz"], window_length, polyorder)
     qw_s = savgol_filter(df["qw"], window_length, polyorder)
-
     norms = np.sqrt(qx_s**2 + qy_s**2 + qz_s**2 + qw_s**2)
     df["qx_smooth"] = qx_s / norms
     df["qy_smooth"] = qy_s / norms
     df["qz_smooth"] = qz_s / norms
     df["qw_smooth"] = qw_s / norms
-
     df_smoothed = df[
         [
             "timestamp_ns",
@@ -1133,7 +1117,6 @@ def smooth_trajectory(current_tag, window_length=11, polyorder=3):
         ]
     ].copy()
     df_smoothed.columns = ["timestamp_ns", "tx", "ty", "tz", "qx", "qy", "qz", "qw"]
-
     smoothed_file = os.path.join(output_dir, "world_object_smoothed.csv")
     df_smoothed.to_csv(smoothed_file, index=False)
     print(f"Saved smoothed trajectory to {smoothed_file}")
@@ -1153,10 +1136,30 @@ def smooth_trajectory(current_tag, window_length=11, polyorder=3):
                     "col4": round(r[3], 2),
                 }
             )
-
     formatted_file = os.path.join(output_dir, "world_object_formatted_smoothed.csv")
     pd.DataFrame(formatted_smoothed).to_csv(formatted_file, index=False)
     print(f"Saved smoothed formatted trajectory to {formatted_file}")
+
+    # object_poses_pipeline_smoothed.csv: initial + final object pose,
+    # each as a rounded 4x4 homogeneous transform (analogue of remove_noise's output)
+    object_poses = []
+    for idx in (0, len(df_smoothed) - 1):
+        row = df_smoothed.iloc[idx]
+        T_mat = get_matrix_from_pose(
+            row["tx"], row["ty"], row["tz"], row["qx"], row["qy"], row["qz"], row["qw"]
+        )
+        for r in T_mat:
+            object_poses.append(
+                {
+                    "col1": round(r[0], 2),
+                    "col2": round(r[1], 2),
+                    "col3": round(r[2], 2),
+                    "col4": round(r[3], 2),
+                }
+            )
+    object_poses_file = os.path.join(output_dir, "object_poses_pipeline_smoothed.csv")
+    pd.DataFrame(object_poses).to_csv(object_poses_file, index=False)
+    print(f"Saved smoothed object poses to {object_poses_file}")
 
 
 create_video_with_hands()
