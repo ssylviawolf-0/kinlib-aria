@@ -18,7 +18,6 @@ cp "$VRS_FILE" "./scripts/$VRS_BASENAME"
 
 CONTAINER_NAME="aria_env_cont"
 
-# deepseek with the proper cleanup
 cleanup() {
     echo "Cleaning up: Stopping Docker container..."
     docker stop "$CONTAINER_NAME" >/dev/null 2>&1 || true
@@ -35,7 +34,7 @@ echo "Moving CSVs..."
 DESTINATION="$(pwd)/files/Demonstrations/aria_project"
 mkdir -p "$DESTINATION"
 
-cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/world_object_formatted_smoothed.csv" "$DESTINATION/"
+cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/world_object_formatted.csv" "$DESTINATION/"
 cp "${OUTPUT_FOLDER}/final_reference/APRIL_TAG_OBJ/object_poses_pipeline.csv" "$DESTINATION/"
 
 echo "Compiling Cpp code..."
@@ -45,7 +44,7 @@ docker exec -w /project "$CONTAINER_NAME" make
 
 echo "Pray this works"
 docker exec -w /project "$CONTAINER_NAME" ./bin/kinlib_projectaria \
-    "files/Demonstrations/aria_project/world_object_formatted_smoothed.csv" \
+    "files/Demonstrations/aria_project/world_object_formatted.csv" \
     "files/Demonstrations/aria_project/object_poses_pipeline.csv"
 
 echo "Moving output files for simulation..."
